@@ -1,0 +1,211 @@
+import tkinter as tk
+from tkinter import messagebox, Text, Entry, END, ttk
+from datetime import datetime
+
+
+# Function to save plants to file
+def save_plants():
+    with open("plants.txt", "w") as file:
+        for plant in plants:
+            file.write(f"{plant}\n")
+
+
+# Function to load plants from file
+def load_plants():
+    try:
+        with open("plants.txt", "r") as file:
+            loaded_plants = [line.strip() for line in file.readlines()]
+        return loaded_plants
+    except FileNotFoundError:
+        return []
+
+
+plants = load_plants()  # Load plants from file
+
+
+# Function to add a new plant
+def add_plant():
+    plant_name = plant_entry.get()
+    if plant_name not in plants:
+        plants.append(plant_name)
+        plant_combobox['values'] = plants
+        save_plants()  # Save updated list of plants
+        messagebox.showinfo("Success", f"{plant_name} added!")
+    else:
+        messagebox.showwarning("Warning", f"{plant_name} already exists!")
+
+
+# Function to remove a plant
+def remove_plant():
+    plant_name = plant_entry.get()
+    if plant_name in plants:
+        plants.remove(plant_name)
+        plant_combobox['values'] = plants
+        save_plants()  # Save updated list of plants
+        messagebox.showinfo("Success", f"{plant_name} removed!")
+    else:
+        messagebox.showwarning("Warning", f"{plant_name} not found!")
+
+
+# Function to log activity
+def log_activity(activity_type):
+    plant_name = plant_combobox.get()
+    growth_stage = growth_combobox.get()
+    week = week_combobox.get()
+    ph_value = ph_entry.get()
+    ppm_value = ppm_entry.get()
+    notes = notes_text.get("1.0", END).strip()  # Get notes from Text widget
+
+    if not plant_name or not growth_stage or not week:
+        messagebox.showwarning("Warning", "Please fill in all required fields!")
+        return
+
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    if activity_type == "Fed":
+        log_entry = f"{timestamp} - {activity_type} {plant_name} ({growth_stage}, Week {week}) - pH: {ph_value}, PPM: {ppm_value}\n"
+    elif activity_type == "Watered":
+        log_entry = f"{timestamp} - {activity_type} {plant_name} ({growth_stage}, Week {week}) - pH: {ph_value}, PPM: {ppm_value}\n"
+    else:
+        log_entry = f"{timestamp} - {activity_type} {plant_name} ({growth_stage}, Week {week})\n"
+
+    if notes:
+        log_entry += f"Notes: {notes}\n"
+
+    with open("plant_log.txt", "a") as file:
+        file.write(log_entry)
+
+    messagebox.showinfo("Success", f"{activity_type} activity logged for {plant_name}")
+    display_log()
+
+
+# Function to display log with color-coded activities, plant names, and dates
+def display_log():
+    log_text.delete(1.0, END)
+    with open("plant_log.txt", "r") as file:
+        for line in file.readlines():
+            # Replace plant names with red color
+            for plant in plants:
+                line = line.replace(plant, f"{plant}")
+
+            log_text.insert(END, line)
+
+    # Apply color tags for plant names
+    for plant in plants:
+        start_index = "1.0"
+        while True:
+            start_index = log_text.search(plant, start_index, stopindex=END)
+            if not start_index:
+                break
+            end_index = f"{start_index}+{len(plant)}c"
+            log_text.tag_add(plant, start_index, end_index)
+            log_text.tag_config(plant, foreground="red")
+            start_index = end_index
+
+    # Apply color tags for activities and dates
+    start_index = "1.0"
+    while True:
+        start_index = log_text.search("Watered", start_index, stopindex=END)
+        if not start_index:
+            break
+        end_index = log_text.search("\n", start_index, stopindex=END)
+        log_text.tag_add("Watered", start_index, end_index)
+        log_text.tag_config("Watered", foreground="blue")
+
+        start_index = end_index
+
+    start_index = "1.0"
+    while True:
+        start_index = log_text.search("Fed", start_index, stopindex=END)
+        if not start_index:
+            break
+        end_index = log_text.search("\n", start_index, stopindex=END)
+        log_text.tag_add("Fed", start_index, end_index)
+        log_text.tag_config("Fed", foreground="green")
+
+        start_index = end_index
+
+
+# Function to clear all text inputs and combobox selections
+def clear_inputs():
+    plant_entry.delete(0, END)
+    ph_entry.delete(0, END)
+    ppm_entry.delete(0, END)
+    notes_text.delete(1.0, END)
+    plant_combobox.set('')
+    growth_combobox.set('')
+    week_combobox.set('')
+
+
+# Create main window
+root = tk.Tk()
+root.title("Plant Activity Log")
+
+# Label and Entry for plant name
+tk.Label(root, text="Plant Name:").grid(row=0, column=0, pady=10, padx=10)
+plant_entry = tk.Entry(root, borderwidth=2, relief="groove")
+plant_entry.grid(row=0, column=1, pady=10, padx=10)
+
+# Add Plant button
+add_button = tk.Button(root, text="Add Plant", command=add_plant)
+add_button.grid(row=0, column=2, pady=10, padx=10)
+
+# Remove Plant button
+remove_button = tk.Button(root, text="Remove Plant", command=remove_plant)
+remove_button.grid(row=0, column=3, pady=10, padx=10)
+
+# Frame for Combobox
+plant_frame = tk.Frame(root, borderwidth=2, relief="groove")
+plant_frame.grid(row=1, column=1, pady=10, padx=10)
+# Combobox to select plant
+plant_combobox = ttk.Combobox(plant_frame, values=plants, state="readonly")
+plant_combobox.pack(padx=5, pady=5)
+
+# Combobox to select growth stage
+growth_combobox = ttk.Combobox(root, values=["Veg", "Flower"], state="readonly")
+growth_combobox.grid(row=1, column=2, pady=10, padx=10)
+
+# Combobox to select week
+week_combobox = ttk.Combobox(root, values=list(range(1, 26)), state="readonly")
+week_combobox.grid(row=1, column=3, pady=10, padx=10)
+
+# Entry for pH value
+tk.Label(root, text="pH Value:").grid(row=2, column=0, pady=10, padx=10)
+ph_entry = Entry(root, borderwidth=2, relief="groove")
+ph_entry.grid(row=2, column=1, pady=10, padx=10)
+
+# Entry for PPM value
+tk.Label(root, text="PPM Value:").grid(row=2, column=2, pady=10, padx=10)
+ppm_entry = Entry(root, borderwidth=2, relief="groove")
+ppm_entry.grid(row=2, column=3, pady=10, padx=10)
+
+# Text widget for notes
+tk.Label(root, text="Notes:").grid(row=3, column=0, pady=10, padx=10)
+notes_text = Text(root, height=4, width=50, borderwidth=2, relief="groove")
+notes_text.grid(row=3, column=1, columnspan=3, pady=10, padx=10)
+
+# Button to log watering
+water_button = tk.Button(root, text="Water", command=lambda: log_activity("Watered"))
+water_button.grid(row=4, column=1, pady=10, padx=10)
+
+# Button to log feeding
+feed_button = tk.Button(root, text="Feed", command=lambda: log_activity("Fed"))
+feed_button.grid(row=4, column=2, pady=10, padx=10)
+
+# Clear Button
+clear_button = tk.Button(root, text="Clear", command=clear_inputs)
+clear_button.grid(row=4, column=3, pady=10, padx=10)
+
+# Text widget to display log with scrollbar
+log_text = Text(root, height=35, width=80, borderwidth=2, relief="groove")
+log_text.grid(row=5, columnspan=4, pady=20, padx=10)
+
+# Scrollbar for log_text
+scrollbar = ttk.Scrollbar(root, orient="vertical", command=log_text.yview)
+scrollbar.grid(row=5, column=4, sticky="ns")
+log_text.config(yscrollcommand=scrollbar.set)
+
+display_log()  # Initial display of log
+
+# Run the main loop
+root.mainloop()
