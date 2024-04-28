@@ -84,11 +84,20 @@ def display_log():
     log_text.delete(1.0, END)
     with open("plant_log.txt", "r") as file:
         for line in file.readlines():
-            # Replace plant names with red color
+            # Apply color tags for plant names
             for plant in plants:
                 line = line.replace(plant, f"{plant}")
 
-            log_text.insert(END, line)
+            # Apply color tags for activities and dates
+            if "Watered" in line:
+                log_text.insert(END, line, "blue")
+            elif "Fed" in line:
+                log_text.insert(END, line, "green")
+            else:
+                log_text.insert(END, line)
+
+    log_text.tag_config("blue", foreground="blue")
+    log_text.tag_config("green", foreground="green")
 
     # Apply color tags for plant names
     for plant in plants:
@@ -101,29 +110,6 @@ def display_log():
             log_text.tag_add(plant, start_index, end_index)
             log_text.tag_config(plant, foreground="red")
             start_index = end_index
-
-    # Apply color tags for activities and dates
-    start_index = "1.0"
-    while True:
-        start_index = log_text.search("Watered", start_index, stopindex=END)
-        if not start_index:
-            break
-        end_index = log_text.search("\n", start_index, stopindex=END)
-        log_text.tag_add("Watered", start_index, end_index)
-        log_text.tag_config("Watered", foreground="blue")
-
-        start_index = end_index
-
-    start_index = "1.0"
-    while True:
-        start_index = log_text.search("Fed", start_index, stopindex=END)
-        if not start_index:
-            break
-        end_index = log_text.search("\n", start_index, stopindex=END)
-        log_text.tag_add("Fed", start_index, end_index)
-        log_text.tag_config("Fed", foreground="green")
-
-        start_index = end_index
 
 
 # Function to clear all text inputs and combobox selections
@@ -140,6 +126,12 @@ def clear_inputs():
 # Create main window
 root = tk.Tk()
 root.title("Plant Activity Log")
+
+# Configure rows and columns to resize with the window
+for i in range(6):
+    root.grid_rowconfigure(i, weight=1)
+for i in range(4):
+    root.grid_columnconfigure(i, weight=1)
 
 # Label and Entry for plant name
 tk.Label(root, text="Plant Name:").grid(row=0, column=0, pady=10, padx=10)
@@ -197,8 +189,8 @@ clear_button = tk.Button(root, text="Clear", command=clear_inputs)
 clear_button.grid(row=4, column=3, pady=10, padx=10)
 
 # Text widget to display log with scrollbar
-log_text = Text(root, height=35, width=80, borderwidth=2, relief="groove")
-log_text.grid(row=5, columnspan=4, pady=20, padx=10)
+log_text = Text(root, height=30, width=50, borderwidth=2, relief="groove")
+log_text.grid(row=5, columnspan=4, pady=20, padx=10, sticky="nsew")
 
 # Scrollbar for log_text
 scrollbar = ttk.Scrollbar(root, orient="vertical", command=log_text.yview)
